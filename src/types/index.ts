@@ -1,0 +1,2 @@
+export type Zone="NORTH"|"SOUTHWEST"|"SOUTHEAST"|"SOUTH-SOUTH";
+export type Employee={id:string;employeeId:string;fullName:string;companyEmail:string;department?:string;zone?:Zone;discovered?:boolean;discoveredAt?:string};

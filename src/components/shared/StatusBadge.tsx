@@ -1,0 +1,1 @@
+export function StatusBadge({children,tone="neutral"}:{children:React.ReactNode;tone?:"neutral"|"success"|"warning"}){const s={neutral:"bg-neutral-100 text-neutral-700",success:"bg-green-50 text-green-700",warning:"bg-tomato-50 text-tomato-700"}[tone];return <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-bold ${s}`}>{children}</span>}
