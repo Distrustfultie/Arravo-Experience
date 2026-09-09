@@ -1,9 +1,9 @@
 {
   "pages": {
-    "/(public)/page": [
+    "/admin/login/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/(public)/page.js"
+      "static/chunks/app/admin/login/page.js"
     ],
     "/layout": [
       "static/chunks/webpack.js",
@@ -11,20 +11,15 @@
       "static/css/app/layout.css",
       "static/chunks/app/layout.js"
     ],
+    "/(public)/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/(public)/page.js"
+    ],
     "/(public)/discover/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
       "static/chunks/app/(public)/discover/page.js"
-    ],
-    "/(public)/about/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/(public)/about/page.js"
-    ],
-    "/admin/login/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/admin/login/page.js"
     ],
     "/admin/(protected)/dashboard/page": [
       "static/chunks/webpack.js",
@@ -41,11 +36,6 @@
       "static/chunks/main-app.js",
       "static/chunks/app/admin/(protected)/participants/page.js"
     ],
-    "/admin/(protected)/assignments/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/admin/(protected)/assignments/page.js"
-    ],
     "/(public)/reveal/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
@@ -55,6 +45,11 @@
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
       "static/chunks/app/(public)/result/page.js"
+    ],
+    "/admin/(protected)/assignments/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/admin/(protected)/assignments/page.js"
     ]
   }
 }

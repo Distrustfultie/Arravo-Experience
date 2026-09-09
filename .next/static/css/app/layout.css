@@ -904,9 +904,6 @@ video {
 .max-w-full {
   max-width: 100%;
 }
-.max-w-lg {
-  max-width: 32rem;
-}
 .max-w-md {
   max-width: 28rem;
 }
@@ -1390,9 +1387,6 @@ video {
 .pt-16 {
   padding-top: 4rem;
 }
-.pt-2 {
-  padding-top: 0.5rem;
-}
 .pt-5 {
   padding-top: 1.25rem;
 }
@@ -1461,6 +1455,9 @@ video {
 }
 .font-medium {
   font-weight: 500;
+}
+.font-normal {
+  font-weight: 400;
 }
 .font-semibold {
   font-weight: 600;

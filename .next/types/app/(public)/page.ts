@@ -1,4 +1,4 @@
-// File: C:\Users\efech\Downloads\arravo-experience-frontend-v3\src\app\(public)\page.tsx
+// File: C:\Users\efech\Downloads\arravo experience frontend\src\app\(public)\page.tsx
 import * as entry from '../../../../src/app/(public)/page.js'
 import type { ResolvingMetadata, ResolvingViewport } from 'next/dist/lib/metadata/types/metadata-interface.js'
 

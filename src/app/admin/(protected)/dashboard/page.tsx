@@ -1,3 +1,6 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import {
   ArrowRight,
@@ -9,38 +12,45 @@ import {
 import { Container } from "@/components/shared/Container";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { CURRENT_EXPERIENCE, PLATFORM } from "@/lib/platform";
+import { ApiError } from "@/lib/api";
+import { fetchZoneDistribution } from "@/lib/staff";
 
-const stats = [
-  {
-    label: "People taking part",
-    value: "427",
-    note: "Total participants",
-  },
-  {
-    label: "People assigned",
-    value: "427",
-    note: "Everyone has a zone",
-  },
-  {
-    label: "Results opened",
-    value: "218",
-    note: "51.1% have checked",
-  },
-  {
-    label: "Still to discover",
-    value: "209",
-    note: "Waiting to reveal",
-  },
-];
-
-const zones = [
-  { name: "North", count: 107 },
-  { name: "Southwest", count: 106 },
-  { name: "Southeast", count: 107 },
-  { name: "South-South", count: 107 },
-];
+type ZoneStat = { zone: string; zoneDisplay: string; count: number };
 
 export default function DashboardPage() {
+  const [zones, setZones] = useState<ZoneStat[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    fetchZoneDistribution()
+      .then(setZones)
+      .catch((err) => {
+        setError(
+          err instanceof ApiError
+            ? err.message
+            : "Could not load zone distribution."
+        );
+      })
+      .finally(() => setIsLoading(false));
+  }, []);
+
+  const total = zones.reduce((sum, zone) => sum + zone.count, 0);
+  const zonesInUse = zones.filter((zone) => zone.count > 0).length;
+
+  const stats = [
+    {
+      label: "People taking part",
+      value: total,
+      note: "Total participants",
+    },
+    {
+      label: "Zones in use",
+      value: zonesInUse,
+      note: `Out of ${zones.length || 4} zones`,
+    },
+  ];
+
   return (
     <Container className="py-8 sm:py-10">
       <div className="flex flex-col justify-between gap-6 sm:flex-row sm:items-start">
@@ -96,33 +106,43 @@ export default function DashboardPage() {
             </div>
 
             <span className="text-sm font-semibold text-neutral-400">
-              427 total
+              {total} total
             </span>
           </div>
 
           <div className="mt-8 space-y-5">
-            {zones.map((zone) => (
-              <div key={zone.name}>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="font-semibold text-neutral-800">
-                    {zone.name}
-                  </span>
+            {isLoading && (
+              <p className="text-sm text-neutral-500">Loading...</p>
+            )}
 
-                  <span className="text-neutral-500">
-                    {zone.count}
-                  </span>
-                </div>
+            {!isLoading && error && (
+              <p className="text-sm text-red-600">{error}</p>
+            )}
 
-                <div className="mt-2 h-2 overflow-hidden rounded-full bg-neutral-100">
-                  <div
-                    className="h-full rounded-full bg-neutral-950"
-                    style={{
-                      width: `${(zone.count / 427) * 100}%`,
-                    }}
-                  />
+            {!isLoading &&
+              !error &&
+              zones.map((zone) => (
+                <div key={zone.zone}>
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="font-semibold text-neutral-800">
+                      {zone.zoneDisplay}
+                    </span>
+
+                    <span className="text-neutral-500">
+                      {zone.count}
+                    </span>
+                  </div>
+
+                  <div className="mt-2 h-2 overflow-hidden rounded-full bg-neutral-100">
+                    <div
+                      className="h-full rounded-full bg-neutral-950"
+                      style={{
+                        width: `${total ? (zone.count / total) * 100 : 0}%`,
+                      }}
+                    />
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))}
           </div>
         </section>
 

@@ -6,25 +6,69 @@ import { Search, Upload, Users, X } from "lucide-react";
 import { Container } from "@/components/shared/Container";
 import { UploadDropzone } from "@/components/admin/UploadDropzone";
 import { StatusBadge } from "@/components/shared/StatusBadge";
-import { mockEmployees } from "@/lib/mock";
+import { ApiError } from "@/lib/api";
+import { parseStaffCsv } from "@/lib/csv";
+import { bulkUploadStaff } from "@/lib/staff";
+import { useStaff } from "@/lib/useStaff";
 
 export default function ParticipantsPage() {
   const [query, setQuery] = useState("");
   const [showUpload, setShowUpload] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadMessage, setUploadMessage] = useState<{
+    tone: "success" | "error";
+    text: string;
+  } | null>(null);
+
+  const { staff, total, isLoading, error, refetch } = useStaff();
 
   const participants = useMemo(() => {
     const searchValue = query.toLowerCase().trim();
 
     if (!searchValue) {
-      return mockEmployees;
+      return staff;
     }
 
-    return mockEmployees.filter((employee) =>
-      `${employee.fullName} ${employee.companyEmail} ${employee.employeeId} ${employee.zone}`
+    return staff.filter((person) =>
+      `${person.fullName} ${person.email ?? ""} ${person.zoneDisplay}`
         .toLowerCase()
         .includes(searchValue)
     );
-  }, [query]);
+  }, [query, staff]);
+
+  async function handleFile(file: File) {
+    setUploadMessage(null);
+    setIsUploading(true);
+
+    try {
+      const text = await file.text();
+      const items = parseStaffCsv(text);
+
+      const uploadedCount = await bulkUploadStaff(items);
+
+      setUploadMessage({
+        tone: "success",
+        text: `Added ${uploadedCount} ${uploadedCount === 1 ? "person" : "people"} to the list.`,
+      });
+
+      await refetch();
+    } catch (err) {
+      setUploadMessage({
+        tone: "error",
+        text:
+          err instanceof ApiError || err instanceof Error
+            ? err.message
+            : "Could not process that file.",
+      });
+    } finally {
+      setIsUploading(false);
+    }
+  }
+
+  const assignedCount = staff.filter((person) => person.zone).length;
+  const zonesInUse = new Set(
+    staff.filter((person) => person.zone).map((person) => person.zone)
+  ).size;
 
   return (
     <Container className="py-8 sm:py-10">
@@ -73,7 +117,7 @@ export default function ParticipantsPage() {
           </div>
 
           <p className="mt-5 text-3xl font-black tracking-[-0.05em]">
-            {mockEmployees.length}
+            {total}
           </p>
         </div>
 
@@ -83,17 +127,17 @@ export default function ParticipantsPage() {
           </p>
 
           <p className="mt-5 text-3xl font-black tracking-[-0.05em]">
-            {mockEmployees.filter((employee) => employee.zone).length}
+            {assignedCount}
           </p>
         </div>
 
         <div className="rounded-[20px] bg-white p-5 shadow-[0_2px_14px_rgba(20,20,20,0.035)]">
           <p className="text-sm text-neutral-500">
-            Results opened
+            Zones in use
           </p>
 
           <p className="mt-5 text-3xl font-black tracking-[-0.05em]">
-            {mockEmployees.filter((employee) => employee.discovered).length}
+            {zonesInUse}
           </p>
         </div>
       </div>
@@ -101,7 +145,19 @@ export default function ParticipantsPage() {
       {showUpload && (
         <div className="mt-5 grid gap-5 xl:grid-cols-[0.8fr_1.2fr]">
           <div className="rounded-[22px] bg-white p-5 shadow-[0_2px_14px_rgba(20,20,20,0.035)] sm:p-6">
-            <UploadDropzone />
+            <UploadDropzone onFile={handleFile} isUploading={isUploading} />
+
+            {uploadMessage && (
+              <p
+                className={`mt-4 rounded-xl px-4 py-3 text-sm font-medium ${
+                  uploadMessage.tone === "success"
+                    ? "bg-green-50 text-green-700"
+                    : "bg-red-50 text-red-600"
+                }`}
+              >
+                {uploadMessage.text}
+              </p>
+            )}
 
             <div className="mt-4 rounded-[18px] bg-neutral-950 p-5 text-sm leading-6 text-neutral-300">
               <strong className="font-semibold text-white">
@@ -109,12 +165,12 @@ export default function ParticipantsPage() {
               </strong>
 
               <p className="mt-2">
-                Employee ID · Full Name · Company Email
+                First Name · Last Name · Email (optional)
               </p>
 
               <p className="mt-4 text-xs leading-5 text-neutral-500">
-                We’ll check the file for missing details and duplicate
-                records before adding anyone to the list.
+                We’ll check the file for missing names before adding anyone
+                to the list. The server assigns everyone a balanced zone.
               </p>
             </div>
           </div>
@@ -131,9 +187,9 @@ export default function ParticipantsPage() {
             <div className="mt-7 space-y-5">
               {[
                 "Upload the approved employee CSV.",
-                "We’ll check the names, emails and employee IDs.",
-                "Review any missing or duplicate records.",
-                "Confirm the import.",
+                "We’ll check the names and emails.",
+                "The server assigns each person a balanced zone.",
+                "The list updates automatically.",
               ].map((step, index) => (
                 <div key={step} className="flex gap-4">
                   <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-neutral-100 text-xs font-bold text-neutral-600">
@@ -158,7 +214,7 @@ export default function ParticipantsPage() {
             </h2>
 
             <p className="mt-1 text-sm text-neutral-500">
-              Showing {participants.length} of {mockEmployees.length} people
+              Showing {participants.length} of {staff.length} people
             </p>
           </div>
 
@@ -168,7 +224,7 @@ export default function ParticipantsPage() {
             <input
               value={query}
               onChange={(event) => setQuery(event.target.value)}
-              placeholder="Search by name, email or employee ID..."
+              placeholder="Search by name, email or zone..."
               className="w-full rounded-xl border border-neutral-200 bg-neutral-50 py-3 pl-10 pr-3 text-sm outline-none transition placeholder:text-neutral-400 focus:border-neutral-950 focus:bg-white"
             />
           </div>
@@ -181,53 +237,56 @@ export default function ParticipantsPage() {
                 <th className="px-6 py-3.5">Participant</th>
                 <th className="px-6 py-3.5">Email</th>
                 <th className="px-6 py-3.5">Assignment</th>
-                <th className="px-6 py-3.5">Status</th>
+                <th className="px-6 py-3.5">Role</th>
               </tr>
             </thead>
 
             <tbody>
-              {participants.map((employee) => (
+              {participants.map((person) => (
                 <tr
-                  key={employee.id}
+                  key={person.id}
                   className="border-b border-neutral-100 last:border-0"
                 >
                   <td className="px-6 py-4">
                     <p className="font-semibold text-neutral-950">
-                      {employee.fullName}
-                    </p>
-
-                    <p className="mt-1 text-xs text-neutral-400">
-                      {employee.employeeId}
+                      {person.fullName}
                     </p>
                   </td>
 
                   <td className="px-6 py-4 text-neutral-500">
-                    {employee.companyEmail}
+                    {person.email || "—"}
                   </td>
 
                   <td className="px-6 py-4">
                     <span className="font-semibold text-neutral-800">
-                      {employee.zone || "Not assigned"}
+                      {person.zoneDisplay || "Not assigned"}
                     </span>
                   </td>
 
                   <td className="px-6 py-4">
-                    <StatusBadge
-                      tone={employee.discovered ? "success" : "neutral"}
-                    >
-                      {employee.discovered ? "Completed" : "Not viewed"}
-                    </StatusBadge>
+                    <StatusBadge tone="neutral">{person.role}</StatusBadge>
                   </td>
                 </tr>
               ))}
 
-              {participants.length === 0 && (
+              {!isLoading && participants.length === 0 && (
                 <tr>
                   <td
                     colSpan={4}
                     className="px-6 py-14 text-center text-sm text-neutral-500"
                   >
-                    No participants match your search.
+                    {error || "No participants match your search."}
+                  </td>
+                </tr>
+              )}
+
+              {isLoading && (
+                <tr>
+                  <td
+                    colSpan={4}
+                    className="px-6 py-14 text-center text-sm text-neutral-500"
+                  >
+                    Loading participants...
                   </td>
                 </tr>
               )}

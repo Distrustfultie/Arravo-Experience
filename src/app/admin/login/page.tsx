@@ -7,19 +7,62 @@ import { ArrowRight } from "lucide-react";
 import { Logo } from "@/components/shared/Logo";
 import { Input } from "@/components/shared/Input";
 import Button from "@/components/shared/Button";
+import { ApiError, apiFetch } from "@/lib/api";
+import { setCurrentUser, setToken } from "@/lib/auth";
+import { AuthUser } from "@/types";
+
+type LoginResponseBody = {
+  access_token: string;
+  user: {
+    id: string;
+    email: string | null;
+    role: string;
+    first_name: string | null;
+    last_name: string | null;
+  };
+};
 
 export default function Login() {
   const router = useRouter();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
-  function submit(event: FormEvent<HTMLFormElement>) {
+  async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    if (email && password) {
-      sessionStorage.setItem("mosaic_admin", "true");
+    setError("");
+    setIsLoading(true);
+
+    try {
+      const body = await apiFetch<LoginResponseBody>("/auth/login", {
+        method: "POST",
+        body: JSON.stringify({ email, password }),
+      });
+
+      setToken(body.access_token);
+
+      const user: AuthUser = {
+        id: body.user.id,
+        email: body.user.email,
+        role: body.user.role as AuthUser["role"],
+        firstName: body.user.first_name,
+        lastName: body.user.last_name,
+      };
+
+      setCurrentUser(user);
+
       router.push("/admin/dashboard");
+    } catch (err) {
+      setError(
+        err instanceof ApiError
+          ? err.message
+          : "Something went wrong. Please try again."
+      );
+    } finally {
+      setIsLoading(false);
     }
   }
 
@@ -83,7 +126,7 @@ export default function Login() {
               id="email"
               label="Company email"
               type="email"
-              placeholder="admin@arravo.com"
+              placeholder="admin@arravo.co"
               value={email}
               onChange={(event) => setEmail(event.target.value)}
               required
@@ -98,15 +141,16 @@ export default function Login() {
               required
             />
 
-            <Button type="submit" className="w-full">
-              <span>Sign in</span>
+            {error && (
+              <p className="rounded-xl bg-red-50 px-4 py-3 text-sm font-medium text-red-600">
+                {error}
+              </p>
+            )}
+
+            <Button type="submit" className="w-full" disabled={isLoading}>
+              <span>{isLoading ? "Signing in..." : "Sign in"}</span>
               <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
-
-            <p className="pt-2 text-center text-xs leading-5 text-neutral-400">
-              Frontend demo. Real authentication will be connected to the
-              backend.
-            </p>
           </form>
         </div>
       </section>

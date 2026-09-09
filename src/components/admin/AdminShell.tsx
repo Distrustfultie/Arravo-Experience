@@ -12,8 +12,9 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 
-import { PLATFORM, CURRENT_EXPERIENCE } from "@/lib/platform";
+import { CURRENT_EXPERIENCE } from "@/lib/platform";
 import { Logo } from "@/components/shared/Logo";
+import { clearCurrentUser, clearToken, getCurrentUser } from "@/lib/auth";
 
 const navigation = [
   {
@@ -41,9 +42,18 @@ export default function AdminShell({
   const pathname = usePathname();
   const router = useRouter();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const currentUser = getCurrentUser();
+
+  const displayName =
+    currentUser?.firstName || currentUser?.email || "Admin";
+
+  const initials = (
+    currentUser?.firstName?.[0] ?? currentUser?.email?.[0] ?? "A"
+  ).toUpperCase();
 
   function logout() {
-    sessionStorage.removeItem("mosaic_admin");
+    clearToken();
+    clearCurrentUser();
     router.push("/admin/login");
   }
 
@@ -155,14 +165,14 @@ export default function AdminShell({
 
           <div className="ml-auto flex items-center gap-3">
             <div className="hidden text-right sm:block">
-              <p className="text-sm font-semibold">Mosaic administrator</p>
+              <p className="text-sm font-semibold">{displayName}</p>
               <p className="mt-0.5 text-xs text-neutral-500">
-                Arravo Experience
+                {currentUser?.email ?? "Arravo Experience"}
               </p>
             </div>
 
             <div className="flex h-9 w-9 items-center justify-center rounded-full bg-black text-xs font-bold text-white">
-              AD
+              {initials}
             </div>
           </div>
         </header>

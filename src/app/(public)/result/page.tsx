@@ -7,6 +7,7 @@ import PublicHeader from "@/components/shared/PublicHeader";
 
 export default function ResultPage() {
   const [participantName, setParticipantName] = useState("");
+  const [zoneDisplay, setZoneDisplay] = useState("");
 
   useEffect(() => {
     const storedParticipant = sessionStorage.getItem("arravo_participant");
@@ -18,6 +19,7 @@ export default function ResultPage() {
 
     const participant = JSON.parse(storedParticipant);
     setParticipantName(participant.fullName);
+    setZoneDisplay(participant.zoneDisplay);
   }, []);
 
   return (
@@ -61,15 +63,9 @@ export default function ResultPage() {
                 </span>
               </div>
 
-              <h2 className="mt-8 text-5xl font-black tracking-[-0.07em] sm:text-7xl">
-                SOUTHWEST
+              <h2 className="mt-8 text-5xl font-black uppercase tracking-[-0.07em] sm:text-7xl">
+                {zoneDisplay || "—"}
               </h2>
-
-              <p className="mt-6 max-w-lg text-base leading-7 text-white/60">
-                This is a temporary frontend result. Your backend will return
-                the real assignment after employee verification and balanced
-                allocation.
-              </p>
 
               <div className="mt-10 border-t border-white/10 pt-6">
                 <p className="text-xs font-bold uppercase tracking-[0.18em] text-white/40">

@@ -1,8 +1,8 @@
 {
-  "/(public)/page": "app/(public)/page.js",
-  "/(public)/discover/page": "app/(public)/discover/page.js",
-  "/(public)/reveal/page": "app/(public)/reveal/page.js",
   "/admin/login/page": "app/admin/login/page.js",
+  "/(public)/discover/page": "app/(public)/discover/page.js",
   "/(public)/result/page": "app/(public)/result/page.js",
-  "/admin/(protected)/dashboard/page": "app/admin/(protected)/dashboard/page.js"
+  "/admin/(protected)/dashboard/page": "app/admin/(protected)/dashboard/page.js",
+  "/admin/(protected)/participants/page": "app/admin/(protected)/participants/page.js",
+  "/admin/(protected)/assignments/page": "app/admin/(protected)/assignments/page.js"
 }

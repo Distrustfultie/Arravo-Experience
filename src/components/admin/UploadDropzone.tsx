@@ -3,18 +3,30 @@
 import { UploadCloud } from "lucide-react";
 import { useState } from "react";
 
-export function UploadDropzone() {
+export function UploadDropzone({
+  onFile,
+  isUploading,
+}: {
+  onFile: (file: File) => void;
+  isUploading?: boolean;
+}) {
   const [fileName, setFileName] = useState("");
 
   return (
     <label className="block cursor-pointer border border-dashed border-black/[0.16] bg-white p-7 transition hover:border-[#e30613] hover:bg-[#fffafa]">
       <input
         type="file"
-        accept=".csv,.xlsx,.xls"
+        accept=".csv"
         className="sr-only"
-        onChange={(event) =>
-          setFileName(event.target.files?.[0]?.name ?? "")
-        }
+        disabled={isUploading}
+        onChange={(event) => {
+          const file = event.target.files?.[0];
+          if (!file) return;
+
+          setFileName(file.name);
+          onFile(file);
+          event.target.value = "";
+        }}
       />
 
       <div className="flex items-start gap-4">
@@ -24,19 +36,15 @@ export function UploadDropzone() {
 
         <div>
           <p className="font-bold">
-            {fileName || "Upload employee list"}
+            {isUploading
+              ? "Uploading..."
+              : fileName || "Upload employee list"}
           </p>
 
           <p className="mt-1 text-sm leading-6 text-neutral-500">
-            CSV or Excel file containing employee ID, full name and company
+            CSV file containing first name, last name and (optional) company
             email.
           </p>
-
-          {fileName && (
-            <p className="mt-3 text-xs font-semibold text-green-700">
-              File selected and ready for validation
-            </p>
-          )}
         </div>
       </div>
     </label>

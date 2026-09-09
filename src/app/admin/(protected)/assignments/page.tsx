@@ -2,69 +2,54 @@
 
 import { useMemo, useState } from "react";
 import {
-  CheckCircle2,
   Download,
-  Lock,
   Search,
   Users,
 } from "lucide-react";
 
 import { Container } from "@/components/shared/Container";
 import { StatusBadge } from "@/components/shared/StatusBadge";
-import { mockEmployees } from "@/lib/mock";
+import { ZONE_CODES, ZONE_DISPLAY } from "@/lib/zones";
+import { useStaff } from "@/lib/useStaff";
 
-const zones = [
-  "ALL",
-  "NORTH",
-  "SOUTHWEST",
-  "SOUTHEAST",
-  "SOUTH-SOUTH",
-];
+const zoneFilters = ["ALL", ...ZONE_CODES];
 
 export default function AssignmentsPage() {
   const [query, setQuery] = useState("");
   const [selectedZone, setSelectedZone] = useState("ALL");
 
+  const { staff, isLoading, error } = useStaff();
+
   const assignments = useMemo(() => {
     const searchValue = query.toLowerCase().trim();
 
-    return mockEmployees.filter((employee) => {
+    return staff.filter((person) => {
       const matchesSearch =
         !searchValue ||
-        `${employee.fullName} ${employee.companyEmail} ${employee.employeeId}`
+        `${person.fullName} ${person.email ?? ""}`
           .toLowerCase()
           .includes(searchValue);
 
       const matchesZone =
-        selectedZone === "ALL" || employee.zone === selectedZone;
+        selectedZone === "ALL" || person.zone === selectedZone;
 
       return matchesSearch && matchesZone;
     });
-  }, [query, selectedZone]);
+  }, [query, selectedZone, staff]);
 
-  const assignedCount = mockEmployees.filter(
-    (employee) => employee.zone
-  ).length;
-
-  const discoveredCount = mockEmployees.filter(
-    (employee) => employee.discovered
-  ).length;
+  const assignedCount = staff.filter((person) => person.zone).length;
+  const zonesInUse = new Set(
+    staff.filter((person) => person.zone).map((person) => person.zone)
+  ).size;
 
   function exportAssignments() {
-    const headers = [
-      "Employee ID",
-      "Full Name",
-      "Company Email",
-      "Zone",
-      "Discovery Status",
-    ];
+    const headers = ["Full Name", "Email", "Zone", "Role"];
 
-    const rows = mockEmployees.map((employee) => [
-      employee.employeeId,
-      employee.fullName,
-      employee.companyEmail,
-      employee.zone || "",
-      employee.discovered ? "Completed" : "Not viewed",
+    const rows = staff.map((person) => [
+      person.fullName,
+      person.email || "",
+      person.zoneDisplay || "",
+      person.role,
     ]);
 
     const csv = [headers, ...rows]
@@ -117,7 +102,7 @@ export default function AssignmentsPage() {
         </button>
       </div>
 
-      <div className="mt-10 grid gap-3 sm:grid-cols-3">
+      <div className="mt-10 grid gap-3 sm:grid-cols-2">
         <div className="rounded-[20px] bg-white p-5 shadow-[0_2px_14px_rgba(20,20,20,0.035)]">
           <div className="flex items-center justify-between">
             <p className="text-sm text-neutral-500">
@@ -134,26 +119,12 @@ export default function AssignmentsPage() {
 
         <div className="rounded-[20px] bg-white p-5 shadow-[0_2px_14px_rgba(20,20,20,0.035)]">
           <p className="text-sm text-neutral-500">
-            Results opened
+            Zones in use
           </p>
 
           <p className="mt-5 text-3xl font-black tracking-[-0.05em]">
-            {discoveredCount}
+            {zonesInUse}
           </p>
-        </div>
-
-        <div className="rounded-[20px] bg-white p-5 shadow-[0_2px_14px_rgba(20,20,20,0.035)]">
-          <div className="flex items-center justify-between">
-            <p className="text-sm text-neutral-500">
-              Allocation status
-            </p>
-
-            <Lock className="h-4 w-4 text-neutral-300" />
-          </div>
-
-          <div className="mt-5">
-            <StatusBadge tone="success">LOCKED</StatusBadge>
-          </div>
         </div>
       </div>
 
@@ -166,8 +137,7 @@ export default function AssignmentsPage() {
               </h2>
 
               <p className="mt-1 text-sm text-neutral-500">
-                These assignments can’t be changed once the allocation
-                is locked.
+                Assignments are made automatically when people are added.
               </p>
             </div>
 
@@ -177,27 +147,20 @@ export default function AssignmentsPage() {
               <input
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
-                placeholder="Search by name, email or employee ID..."
+                placeholder="Search by name or email..."
                 className="w-full rounded-xl border border-neutral-200 bg-neutral-50 py-3 pl-10 pr-3 text-sm outline-none transition placeholder:text-neutral-400 focus:border-neutral-950 focus:bg-white"
               />
             </div>
           </div>
 
           <div className="mt-6 flex gap-2 overflow-x-auto pb-1">
-            {zones.map((zone) => {
+            {zoneFilters.map((zone) => {
               const isActive = selectedZone === zone;
 
               const label =
                 zone === "ALL"
                   ? "Everyone"
-                  : zone
-                    .toLowerCase()
-                    .split("-")
-                    .map(
-                      (word) =>
-                        word.charAt(0).toUpperCase() + word.slice(1)
-                    )
-                    .join("-");
+                  : ZONE_DISPLAY[zone as keyof typeof ZONE_DISPLAY];
 
               return (
                 <button
@@ -223,49 +186,54 @@ export default function AssignmentsPage() {
                 <th className="px-6 py-3.5">Employee</th>
                 <th className="px-6 py-3.5">Email</th>
                 <th className="px-6 py-3.5">Zone</th>
-                <th className="px-6 py-3.5">Discovery</th>
+                <th className="px-6 py-3.5">Role</th>
               </tr>
             </thead>
 
             <tbody>
-              {assignments.map((employee) => (
+              {assignments.map((person) => (
                 <tr
-                  key={employee.id}
+                  key={person.id}
                   className="border-t border-black/[0.06]"
                 >
                   <td className="px-5 py-4">
-                    <strong className="font-semibold">{employee.fullName}</strong>
-
-                    <div className="mt-1 text-xs text-neutral-500">
-                      {employee.employeeId}
-                    </div>
+                    <strong className="font-semibold">{person.fullName}</strong>
                   </td>
 
                   <td className="px-5 py-4 text-neutral-600">
-                    {employee.companyEmail}
+                    {person.email || "—"}
                   </td>
 
                   <td className="px-5 py-4">
-                    <span className="font-semibold">{employee.zone}</span>
+                    <span className="font-semibold">
+                      {person.zoneDisplay || "Not assigned"}
+                    </span>
                   </td>
 
                   <td className="px-5 py-4">
-                    <StatusBadge
-                      tone={employee.discovered ? "success" : "neutral"}
-                    >
-                      {employee.discovered ? "Viewed" : "Not viewed"}
-                    </StatusBadge>
+                    <StatusBadge tone="neutral">{person.role}</StatusBadge>
                   </td>
                 </tr>
               ))}
 
-              {assignments.length === 0 && (
+              {!isLoading && assignments.length === 0 && (
                 <tr>
                   <td
                     colSpan={4}
                     className="px-6 py-14 text-center text-sm text-neutral-500"
                   >
-                    No assignments match your search.
+                    {error || "No assignments match your search."}
+                  </td>
+                </tr>
+              )}
+
+              {isLoading && (
+                <tr>
+                  <td
+                    colSpan={4}
+                    className="px-6 py-14 text-center text-sm text-neutral-500"
+                  >
+                    Loading assignments...
                   </td>
                 </tr>
               )}

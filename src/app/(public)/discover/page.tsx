@@ -1,56 +1,81 @@
 "use client";
 
-import Link from "next/link";
 import { FormEvent, useState } from "react";
 import { ArrowRight, Mail, UserRound } from "lucide-react";
 import PublicHeader from "@/components/shared/PublicHeader";
+import { ApiError } from "@/lib/api";
+import { fetchStaff } from "@/lib/staff";
 
 export default function DiscoverPage() {
-  const [fullName, setFullName] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [companyEmail, setCompanyEmail] = useState("");
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     setError("");
 
-    if (!fullName.trim() || !companyEmail.trim()) {
-      setError("Please enter your full name and company email.");
-      return;
-    }
-
-    if (!companyEmail.includes("@")) {
-      setError("Please enter a valid company email address.");
+    if (!firstName.trim() || !lastName.trim()) {
+      setError("Please enter your first and last name.");
       return;
     }
 
     setIsLoading(true);
 
-    /*
-     * Temporary frontend demo.
-     *
-     * Replace this with the backend verification request:
-     *
-     * POST /api/public/experiences/mosaic-2026/verify
-     *
-     * The backend should verify the employee and return a secure
-     * participant/session reference. It should not expose the assignment
-     * directly at this stage.
-     */
+    try {
+      const { staff } = await fetchStaff({
+        firstName: firstName.trim(),
+        lastName: lastName.trim(),
+      });
 
-    sessionStorage.setItem(
-      "arravo_participant",
-      JSON.stringify({
-        fullName: fullName.trim(),
-        companyEmail: companyEmail.trim().toLowerCase(),
-      })
-    );
+      let match = staff;
 
-    setTimeout(() => {
+      if (match.length > 1 && companyEmail.trim()) {
+        const normalizedEmail = companyEmail.trim().toLowerCase();
+        match = match.filter(
+          (person) => person.email?.toLowerCase() === normalizedEmail
+        );
+      }
+
+      if (match.length === 0) {
+        setError(
+          "We couldn't find your profile. Check your name and try again."
+        );
+        return;
+      }
+
+      if (match.length > 1) {
+        setError(
+          "We found more than one match. Please also enter your company email."
+        );
+        return;
+      }
+
+      const person = match[0];
+
+      sessionStorage.setItem(
+        "arravo_participant",
+        JSON.stringify({
+          id: person.id,
+          fullName: person.fullName,
+          zone: person.zone,
+          zoneDisplay: person.zoneDisplay,
+        })
+      );
+
       window.location.href = "/reveal";
-    }, 500);
+    } catch (err) {
+      setError(
+        err instanceof ApiError
+          ? err.message
+          : "Something went wrong. Please try again."
+      );
+    } finally {
+      setIsLoading(false);
+    }
   }
 
   return (
@@ -82,7 +107,8 @@ export default function DiscoverPage() {
               <p className="text-sm font-bold">What you need</p>
 
               <p className="mt-2 text-sm leading-6 text-black/55">
-                Your full name and official Arravo company email address.
+                Your first and last name. If more than one person shares your
+                name, we’ll also ask for your company email.
               </p>
             </div>
           </div>
@@ -99,25 +125,49 @@ export default function DiscoverPage() {
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-6">
-              <div>
-                <label
-                  htmlFor="fullName"
-                  className="mb-2 block text-sm font-bold"
-                >
-                  Full name
-                </label>
+              <div className="grid gap-6 sm:grid-cols-2">
+                <div>
+                  <label
+                    htmlFor="firstName"
+                    className="mb-2 block text-sm font-bold"
+                  >
+                    First name
+                  </label>
 
-                <div className="relative">
-                  <UserRound className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-black/35" />
+                  <div className="relative">
+                    <UserRound className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-black/35" />
 
-                  <input
-                    id="fullName"
-                    type="text"
-                    value={fullName}
-                    onChange={(event) => setFullName(event.target.value)}
-                    placeholder="Enter your full name"
-                    className="w-full rounded-xl border border-black/10 bg-[#f8f6f2] px-11 py-4 text-sm outline-none transition focus:border-[#e30613] focus:ring-4 focus:ring-[#e30613]/10"
-                  />
+                    <input
+                      id="firstName"
+                      type="text"
+                      value={firstName}
+                      onChange={(event) => setFirstName(event.target.value)}
+                      placeholder="First name"
+                      className="w-full rounded-xl border border-black/10 bg-[#f8f6f2] px-11 py-4 text-sm outline-none transition focus:border-[#e30613] focus:ring-4 focus:ring-[#e30613]/10"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label
+                    htmlFor="lastName"
+                    className="mb-2 block text-sm font-bold"
+                  >
+                    Last name
+                  </label>
+
+                  <div className="relative">
+                    <UserRound className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-black/35" />
+
+                    <input
+                      id="lastName"
+                      type="text"
+                      value={lastName}
+                      onChange={(event) => setLastName(event.target.value)}
+                      placeholder="Last name"
+                      className="w-full rounded-xl border border-black/10 bg-[#f8f6f2] px-11 py-4 text-sm outline-none transition focus:border-[#e30613] focus:ring-4 focus:ring-[#e30613]/10"
+                    />
+                  </div>
                 </div>
               </div>
 
@@ -126,7 +176,10 @@ export default function DiscoverPage() {
                   htmlFor="companyEmail"
                   className="mb-2 block text-sm font-bold"
                 >
-                  Company email
+                  Company email{" "}
+                  <span className="font-normal text-black/40">
+                    (optional, only needed if there's more than one match)
+                  </span>
                 </label>
 
                 <div className="relative">
@@ -137,7 +190,7 @@ export default function DiscoverPage() {
                     type="email"
                     value={companyEmail}
                     onChange={(event) => setCompanyEmail(event.target.value)}
-                    placeholder="name@arravo.com"
+                    placeholder="name@arravo.co"
                     className="w-full rounded-xl border border-black/10 bg-[#f8f6f2] px-11 py-4 text-sm outline-none transition focus:border-[#e30613] focus:ring-4 focus:ring-[#e30613]/10"
                   />
                 </div>
